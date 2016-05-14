@@ -37,6 +37,7 @@
 #include "L1Trigger/CSCTrackFinder/interface/CSCSectorReceiverLUT.h"
 #include "DataFormats/CSCDigi/interface/CSCCorrelatedLCTDigiCollection.h"
 
+
 typedef edm::ParameterSet PSet;
 
 
@@ -67,6 +68,7 @@ public:
   ///////////////////////////////////////
   ///////////////////////////////////////
   ///////////////////////////////////////
+  
   
   
   const float ptscale[33] = { 
