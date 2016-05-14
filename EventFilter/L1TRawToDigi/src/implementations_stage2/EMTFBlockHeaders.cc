@@ -116,13 +116,13 @@ namespace l1t {
 	uint16_t HD3c = payload[10];
 	uint16_t HD3d = payload[11];
 
-	// res is a pointer to a collection of EMTFOutput class objects
-	// There is one EMTFOutput for each MTF7 (60 deg. sector) in the event
-	EMTFOutputCollection* res;
-	res = static_cast<EMTFCollections*>(coll)->getEMTFOutputs();
+	// res is a pointer to a collection of EMTFDaqOut class objects
+	// There is one EMTFDaqOut for each MTF7 (60 deg. sector) in the event
+	EMTFDaqOutCollection* res;
+	res = static_cast<EMTFCollections*>(coll)->getEMTFDaqOuts();
 	
-	EMTFOutput EMTFOutput_;
-	res->push_back(EMTFOutput_);
+	EMTFDaqOut EMTFDaqOut_;
+	res->push_back(EMTFDaqOut_);
 	int iOut = res->size() - 1;
 
 	//////////////////////////////////////
@@ -182,7 +182,8 @@ namespace l1t {
 	if (EventHeader_.Format_Errors() > 0) goto write_Event;
 	
 	EventHeader_.set_l1a     ( GetHexBits(HD1a,  0, 11, HD1b,  0, 11) );
-	EventHeader_.set_l1a_bxn ( GetHexBits(HD1d,  0, 11) );
+	EventHeader_.set_l1a_BXN ( GetHexBits(HD1d,  0, 11) );
+	EventHeader_.set_sp_TS   ( GetHexBits(HD2b,  8, 11) );
 	EventHeader_.set_endcap  ( GetHexBits(HD2b, 11, 11) ? -1 : 1 ); 
 	EventHeader_.set_sector  ( GetHexBits(HD2b,  8, 10) + 1 );      
 	EventHeader_.set_sp_ersv ( GetHexBits(HD2b,  5,  7) );

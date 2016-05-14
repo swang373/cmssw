@@ -7,7 +7,10 @@ namespace l1t {
     {
       // std::cout << "Inside EMTFCollections.cc: ~EMTFCollections" << std::endl;
       event_.put(regionalMuonCands_);
-      event_.put(EMTFOutputs_);
+      event_.put(EMTFDaqOuts_);
+      event_.put(EMTFHits_);
+      event_.put(EMTFTracks_);
+      event_.put(EMTFLCTs_);
     }
   }
 }
