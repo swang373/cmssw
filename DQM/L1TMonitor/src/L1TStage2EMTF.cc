@@ -4,9 +4,8 @@
 #include "DQM/L1TMonitor/interface/L1TStage2EMTF.h"
 
 
-L1TStage2EMTF::L1TStage2EMTF(const edm::ParameterSet& ps)
-    : inputToken(consumes<l1t::EMTFOutputCollection>(ps.getParameter<edm::InputTag>("emtfProducer"))),
-      outputToken(consumes<l1t::RegionalMuonCandBxCollection>(ps.getParameter<edm::InputTag>("emtfProducer"))),
+L1TStage2EMTF::L1TStage2EMTF(const edm::ParameterSet& ps) 
+    : emtfToken(consumes<l1t::EMTFDaqOutCollection>(ps.getParameter<edm::InputTag>("emtfSource"))),
       monitorDir(ps.getUntrackedParameter<std::string>("monitorDir", "")),
       verbose(ps.getUntrackedParameter<bool>("verbose", false)) {}
 
@@ -188,45 +187,56 @@ void L1TStage2EMTF::analyze(const edm::Event& e, const edm::EventSetup& c) {
 
   if (verbose) edm::LogInfo("L1TStage2EMTF") << "L1TStage2EMTF: analyze..." << std::endl;
 
-  edm::Handle<l1t::EMTFOutputCollection> EMTFOutputCollection;
-  e.getByToken(inputToken, EMTFOutputCollection);
+  edm::Handle<l1t::EMTFDaqOutCollection> EMTFDaqOutCollection;
+  e.getByToken(emtfToken, EMTFDaqOutCollection);
 
-  int nTracksEvent = 0;
-
-  for (std::vector<l1t::EMTFOutput>::const_iterator EMTFOutput = EMTFOutputCollection->begin(); EMTFOutput != EMTFOutputCollection->end(); ++EMTFOutput) {
+  int nTracks = 0;
+ 
+  for (std::vector<l1t::EMTFDaqOut>::const_iterator EMTFDaqOut = EMTFDaqOutCollection->begin(); EMTFDaqOut != EMTFDaqOutCollection->end(); ++EMTFDaqOut) {
 
     // Event Record Header
-    const l1t::emtf::EventHeader* EventHeader = EMTFOutput->PtrEventHeader();
-    int Endcap = EventHeader->Endcap();
-    int Sector = EventHeader->Sector();
+    l1t::emtf::EventHeader EventHeader = EMTFDaqOut->GetEventHeader();
+    int Endcap = EventHeader.Endcap();
+    int Sector = EventHeader.Sector();
+    int RDY = EventHeader.Rdy(); //For csctferrors, check if FMM Signal was good
 
-    if (!EventHeader->Rdy()) emtfErrors->Fill(5);
-
-    // ME (LCTs) Data Record
-    const l1t::emtf::MECollection* MECollection = EMTFOutput->PtrMECollection();
+    // ME Data Record (LCTs)
+    l1t::emtf::MECollection MECollection = EMTFDaqOut->GetMECollection();
 
     for (std::vector<l1t::emtf::ME>::const_iterator ME = MECollection->begin(); ME != MECollection->end(); ++ME) {
       int Station = ME->Station();
-      int Ring = ME->Ring();
-      int Subsector = ME->Subsector();
-      int CSC_ID = ME->CSC_ID();
-      //int Neighbor = ME->Neighbor();
-      int Strip = ME->Strip();
-      int Wire = ME->Wire();
+      int CSCID_offset = (Sector - 1) * 9;
+      int strip = ME->Strip();
+      int wire = ME->Wire();
+      int CSCID_offset_ring1 = CSCID + (3 * (Sector-1)) + 1; 
+      int CSCID_offset_ring2 = CSCID + (6 * (Sector-1)) - 2;
+      int ring = 0;
+      int bx = ME->TBIN() - 3;
+      bool SE = ME->SE();
+      bool SM = ME->SM();
+      bool BXE = ME->BXE();
+      bool AF = ME->AF();
 
-      // Evaluate histogram index and chamber number with respect to station and ring.
-      int hist_index = 0, chamber_number = 0;
+      if (SE)     emtferrors->Fill(1.5);
+      if (SM)     emtferrors->Fill(2.5);
+      if (BXE)    emtferrors->Fill(3.5);
+      if (AF)     emtferrors->Fill(4.5);
+      if (RDY == 0) emtferrors->Fill(5.5);
 
-      if (Station == 1) {
-        if (Ring == 1 || Ring == 4) {
-          hist_index = 8;
-          chamber_number = ((Sector-1) * 6) + CSC_ID + 2;
-        } else if (Ring == 2) {
-          hist_index = 7;
-          chamber_number = ((Sector-1) * 6) + CSC_ID - 1;
-        } else if (Ring == 3) {
-          hist_index = 6;
-          chamber_number = ((Sector-1) * 6) + CSC_ID - 4;
+      // Get the ring number
+      if (Station == 1 || Station == 0) {
+        if (CSCID > -1 && CSCID < 3) {
+          ring = 1;
+        } else if (CSCID > 2 && CSCID < 6) {
+          ring = 2;
+        } else if (CSCID > 5 && CSCID < 9) {
+          ring = 3;
+        }
+      } else if (Station == 2 || Station == 3 || Station == 4) {
+        if (CSCID > -1 && CSCID < 3) {
+          ring = 1;
+        } else if (CSCID > 2 && CSCID < 9) {
+          ring = 2;
         }
         if (Subsector == 2) chamber_number += 3;
         if (chamber_number > 36) chamber_number -= 36;
@@ -274,40 +284,43 @@ void L1TStage2EMTF::analyze(const edm::Event& e, const edm::EventSetup& c) {
       }
     }
 
-    // SP (Tracks) Data Record
-    const l1t::emtf::SPCollection* SPCollection = EMTFOutput->PtrSPCollection();
+    // SP Output Data Record
+    l1t::emtf::SPCollection SPCollection = EMTFDaqOut->GetSPCollection();
 
-    int nTracksSP = SPCollection->size();
-
-    if (nTracksSP <= 6) {
-      emtfnTracksSP->Fill(nTracksSP);
-    } else {
-      emtfnTracksSP->Fill(6);
-    }
-
-    for (std::vector<l1t::emtf::SP>::const_iterator SP = SPCollection->begin(); SP != SPCollection->end(); ++SP) {
-      float Pt = SP->Pt();
-      float Eta = SP->Eta_GMT();
-      float Phi_GMT_global_rad = SP->Phi_GMT_global_rad();
-
-      int Quality = SP->Quality();
+    for (std::vector<l1t::emtf::SP>::const_iterator SP = SPCollection.begin(); SP != SPCollection.end(); ++SP) {
       int Mode = SP->Mode();
+      float Eta_GMT = SP->Eta_GMT();
+      float Phi_GMT_local_rad = (SP->Phi_GMT() * M_PI/288) + (M_PI/576);
+      float Phi_GMT_global_rad = Phi_GMT_local_rad + (M_PI/12) + (Sector-1)*(M_PI/3);
+      if (Phi_GMT_global_rad > M_PI) Phi_GMT_global_rad -= 2*M_PI;
+      
 
-      if (Mode == 0) {
-        emtfnLCTs->Fill(0);
-      } else if (Mode == 1 || Mode == 2 || Mode == 4 || Mode == 8) {
-        emtfnLCTs->Fill(1);
-      } else if (Mode == 3 || Mode == 5 || Mode == 9 || Mode == 10 || Mode == 12) {
-        emtfnLCTs->Fill(2);
-      } else if (Mode == 7 || Mode == 11 || Mode == 13 || Mode == 14) {
-        emtfnLCTs->Fill(3);
-      } else {
-        emtfnLCTs->Fill(4);
+      switch (Mode) {
+        case 0: {
+          emtfnLCTs->Fill(0);
+          break;
+        }
+        case 1: case 2: case 4: case 8: {
+          emtfnLCTs->Fill(1);
+          break;
+        }
+        case 3: case 5: case 9: case 10: case 12: {
+          emtfnLCTs->Fill(2);
+          break;
+        }
+        case 7: case 11: case 13: case 14: {
+          emtfnLCTs->Fill(3);
+          break;
+        }
+        case 15: {
+          emtfnLCTs->Fill(4);
+          break;
+        }
       }
 
-      emtfTrackBX->Fill(Endcap * (Sector - 0.5), SP->TBIN_num());
-      emtfTrackPt->Fill(Pt);
-      emtfTrackEta->Fill(Eta);
+      emtfTrackBX->Fill(Endcap * Sector, SP->TBIN() - 3);
+      emtfTrackPt->Fill( (SP->Pt_GMT() - 1) * 0.5 );
+      emtfTrackEta->Fill(Eta_GMT);
       emtfTrackPhi->Fill(Phi_GMT_global_rad);
       emtfTrackOccupancy->Fill(Eta, Phi_GMT_global_rad);
       emtfMode->Fill(Mode);

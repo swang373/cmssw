@@ -77,10 +77,10 @@ namespace l1t {
         uint16_t BCc = payload[2];
         uint16_t BCd = payload[3];
 
-	// res is a pointer to a collection of EMTFOutput class objects
-	// There is one EMTFOutput for each MTF7 (60 deg. sector) in the event
-	EMTFOutputCollection* res;
-	res = static_cast<EMTFCollections*>(coll)->getEMTFOutputs();
+	// res is a pointer to a collection of EMTFDaqOut class objects
+	// There is one EMTFDaqOut for each MTF7 (60 deg. sector) in the event
+	EMTFDaqOutCollection* res;
+	res = static_cast<EMTFCollections*>(coll)->getEMTFDaqOuts();
 	int iOut = res->size() - 1;
 
 	///////////////////////////////

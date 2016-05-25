@@ -23,17 +23,17 @@ namespace l1t {
       
       virtual ~Counters() {};
       
-      void set_track_counter(int bits) { track_counter = bits; };
-      void set_orbit_counter(int bits) { orbit_counter = bits; };
-      void set_rpc_counter(int bits)   { rpc_counter = bits;   };
-      void add_format_error()          { format_errors += 1;   };
-      void set_dataword(uint64_t bits) { dataword = bits;      };
+      void set_track_counter(int bits) { track_counter = bits; }
+      void set_orbit_counter(int bits) { orbit_counter = bits; }
+      void set_rpc_counter(int bits)   { rpc_counter = bits;   }
+      void add_format_error()          { format_errors += 1;   }
+      void set_dataword(uint64_t bits) { dataword = bits;      }
       
-      int      Track_counter() const { return track_counter; };
-      int      Orbit_counter() const { return orbit_counter; };
-      int      RPC_counter()   const { return rpc_counter;   };
-      int      Format_Errors() const { return format_errors; };
-      uint64_t Dataword()      const { return dataword;      };      
+      int      Track_counter() const { return track_counter; }
+      int      Orbit_counter() const { return orbit_counter; }
+      int      RPC_counter()   const { return rpc_counter;   }
+      int      Format_Errors() const { return format_errors; }
+      uint64_t Dataword()      const { return dataword;      }      
       
     private:
       int track_counter;

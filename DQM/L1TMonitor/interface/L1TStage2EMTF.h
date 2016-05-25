@@ -1,9 +1,7 @@
 #ifndef DQM_L1TMonitor_L1TStage2EMTF_h
 #define DQM_L1TMonitor_L1TStage2EMTF_h
 
-#include "FWCore/Framework/interface/Event.h"
-#include "FWCore/MessageLogger/interface/MessageLogger.h"
-#include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "DataFormats/L1TMuon/interface/EMTFDaqOut.h"
 
 #include "DQMServices/Core/interface/DQMEDAnalyzer.h"
 #include "DQMServices/Core/interface/MonitorElement.h"
@@ -28,8 +26,7 @@ class L1TStage2EMTF : public DQMEDAnalyzer {
 
  private:
 
-  edm::EDGetTokenT<l1t::EMTFOutputCollection> inputToken;
-  edm::EDGetTokenT<l1t::RegionalMuonCandBxCollection> outputToken;
+  edm::EDGetTokenT<l1t::EMTFDaqOutCollection> emtfToken;
   std::string monitorDir;
   bool verbose;
 
